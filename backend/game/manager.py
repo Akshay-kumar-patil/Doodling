@@ -200,7 +200,7 @@ async def end_round(room_id) ->dict:
     
     room["drawer_index"]=(room["drawer_index"] +1 ) % len(room["players"])
 
-    if room["current_round"]=>roomp["total_rounds"]:
+    if room["current_round"]==room["total_rounds"]:
         winner=await announce_winner(room_id)
         return {
             "success":True,
@@ -217,8 +217,30 @@ async def end_round(room_id) ->dict:
         "game_over": False,
     }
 
-async def announce_winner(room_id) ->dicx:
+async def announce_winner(room_id) ->dict:
+    room=rooms[room_id]
 
+    winner= max(room["scores"], key=lambda player: room["scores"][player])
+    highest_score=room["scores"][winner]
+
+    tied_players=[
+        player for player,scores in room["scores"].items() if scores == highest_score
+    ]
+
+    if len(tied_players) >1:
+        return {
+            "tie":True,
+            "winners":tied_players,
+            "scores":highest_score,
+            "all_scores": room["scores"],  
+        }
+    
+    return {
+        "tie": False,
+        "winner": winner,
+        "score": highest_score,
+        "all_scores": room["scores"],  
+    }
 
 #  tells the user about the length of the word
 def get_word_hint(word: str) -> str:
