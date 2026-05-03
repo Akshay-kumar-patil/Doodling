@@ -52,6 +52,8 @@ async def create_room(room_id,host_username) -> dict :
         "visited_words":[],
         "word_choices":[],
         "drawer_index":0,
+        "total_rounds": None,
+        "current_round": 0, 
         "timer_task":None,
     }
 
@@ -145,7 +147,7 @@ async def select_word(room_id , choosen_word)->dict:
 
     return {"success": True, "word": choosen_word}
 
-async def start_round(room_id,total_time) ->dict:
+async def start_round(room_id,total_time,total_rounds) ->dict:
     if room_id not in rooms:
         return {"success": False, "error": "room not found"}
     
@@ -160,6 +162,9 @@ async def start_round(room_id,total_time) ->dict:
     room["start_time"]=asyncio.get_event_loop().time()
     room["round_active"]=True
     room["correct_guessers"]=[]
+
+    room["total_rounds"]=total_rounds
+    room["current_round"] += 1
 
     word_choices=await get_word_choices(room_id)
     
@@ -195,11 +200,25 @@ async def end_round(room_id) ->dict:
     
     room["drawer_index"]=(room["drawer_index"] +1 ) % len(room["players"])
 
+    if room["current_round"]=>roomp["total_rounds"]:
+        winner=await announce_winner(room_id)
+        return {
+            "success":True,
+            "correct_word":correct_word,
+            "scores":room["scores"],
+            "game_over": True,  
+            "winner": winner,
+        }
+
     return {
         "success":True,
         "correct_word":correct_word,
         "scores":room["scores"],
+        "game_over": False,
     }
+
+async def announce_winner(room_id) ->dicx:
+
 
 #  tells the user about the length of the word
 def get_word_hint(word: str) -> str:
