@@ -62,7 +62,7 @@ async def create_room(room_id,host_username) -> dict :
 #  other palyer can join
 async def join_room(room_id,username) -> dict:
     if room_id not in rooms:
-        return {"sucess":False,"error": "room not found"}
+        return {"success":False,"error": "room not found"}
     
     room=rooms[room_id]
 
@@ -247,7 +247,7 @@ def get_word_hint(word: str) -> str:
     return " ".join("_" for letter in word)
 
 # guess the word 
-async def handle_guess(room_id,username,guessesd_text) ->dict:
+async def handle_guess(room_id,username,guessed_text,active_connections) ->dict:
     if room_id not in rooms:
         return {"success": False, "error": "room not found"}
     
@@ -257,12 +257,17 @@ async def handle_guess(room_id,username,guessesd_text) ->dict:
         return {"success":False , "error":"round is not active"}
     
     if username == room["drawer"]:
-        return {"success": False, "error": "drawer cannot guess"}
+        await send_to_one(username, {
+            "type": "chat",
+            "username": username,
+            "text": guessed_text
+        }, active_connections)
+        return {"success": True}  
     
     if username in room["correct_guessers"]:
         return {"success": False, "error": "already guessed correctly"}
     
-    if guessesd_text.lower().strip() == room["word"].lower().strip():
+    if guessed_text.lower().strip() == room["word"].lower().strip():
         time_passed=asyncio.get_event_loop().time() -room["start_time"]
         time_remaining=room["total_time"]-time_passed
 
@@ -279,6 +284,25 @@ async def handle_guess(room_id,username,guessesd_text) ->dict:
         
         room["scores"][username]+=points
         room["correct_guessers"].append(username)
+
+        # send only to the correct guesser
+        await send_to_one(username, {
+            "type": "correct_guess",
+            "text": "You guessed correctly!",
+            "points": points,
+        }, active_connections)
+
+        # sending to everyone (word is hidden for rest of the players)
+        await broadcast_except(room_id, username, {
+            "type": "correct_guess",
+            "text": f"{username} guessed the word!",
+        }, active_connections)
+
+        # update the scores to everyone
+        await broadcast(room_id, {
+            "type": "score_update",
+            "scores": room["scores"],
+        }, active_connections)
 
         # check if all guessers have guesses correctly
         guessers = [p for p in room["players"] if p != room["drawer"]]
@@ -297,9 +321,40 @@ async def handle_guess(room_id,username,guessesd_text) ->dict:
         }
     
     else:
+        # if guerss ==wrong everyone can sees your text
+        await broadcast(room_id, {
+            "type": "chat",
+            "username": username,
+            "text": guessed_text,
+        }, active_connections)
+
         return {
             "success": True,
             "correct": False,
             "username": username,
-            "text": guessesd_text,
+            "text": guessed_text,
         }
+    
+# send message to all player in that room
+async def broadcast(room_id,message,active_connection):
+    room=rooms[room_id]
+    for username in room["players"]:
+        if username in active_connection:
+            websocket=active_connection[username]
+            await websocket.send_text(message)
+
+
+# send message to one specific player only
+async def send_to_one(username, message, active_connection):
+    if username in active_connection:
+        websocket= active_connection[username]
+        await websocket.send_text(message)
+
+# send message to everyone except drawer
+async def broadcast_except(room_id, exclude_username, message, active_connections):
+    room = rooms[room_id]
+    for username in room["players"]:
+        if username != exclude_username:        
+            if username in active_connections:
+                websocket = active_connections[username]
+                await websocket.send_text(message)
