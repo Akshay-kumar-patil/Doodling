@@ -1,7 +1,6 @@
 import asyncio
-from typing import Dict, List, Optional
+from typing import Dict, List
 import random
-from models.message import Message
 
 WORD_DATABASE = [
     "apple", "banana", "car", "dog", "elephant",
@@ -67,7 +66,7 @@ async def join_room(room_id,username) -> dict:
     room=rooms[room_id]
 
     if username in room["players"]:
-        return {"sucess":False,"error": "username alread taken"}
+        return {"success":False,"error": "username already taken"}
     
     room["players"].append(username)
     room["scores"][username]=0
@@ -78,7 +77,7 @@ async def join_room(room_id,username) -> dict:
 
 async def remove_player(room_id,username) ->dict :
     if room_id not in rooms:
-        return {"sucess":False,"error": "room not found"}
+        return {"success":False,"error": "room not found"}
     
     room=rooms[room_id]
     
@@ -93,7 +92,7 @@ async def remove_player(room_id,username) ->dict :
     if username == room["drawer"] and room["round_active"]:
         await end_round(room_id)
 
-    return {"sucess": True}
+    return {"success": True}
 
 # get the current time of the room
 async def get_room_state(room_id) ->dict:
@@ -118,6 +117,9 @@ async def get_room_state(room_id) ->dict:
 
 #  choose word
 async def get_word_choices(room_id) -> List[str]:
+    if room_id not in rooms:
+        return []
+
     room=rooms[room_id]
 
     available_words = [
@@ -136,6 +138,9 @@ async def get_word_choices(room_id) -> List[str]:
 
 # select one of these three words
 async def select_word(room_id , choosen_word)->dict:
+    if room_id not in rooms:
+        return {"success": False, "error": "room not found"}
+
     room=rooms[room_id]
 
     if choosen_word not in room["word_choices"]:
@@ -155,6 +160,9 @@ async def start_round(room_id,total_time,total_rounds) ->dict:
 
     if len(room["players"])<2:
         return {"success":False, "error":"need at least 2 players"}
+
+    if room["round_active"]:
+        return {"success": False, "error": "round already active"}
     
     room["drawer"]=room["players"][room["drawer_index"]]
 
@@ -197,6 +205,8 @@ async def end_round(room_id) ->dict:
 
     correct_word=room["word"]
     room["word"]=None
+    room["word_choices"] = []
+    room["correct_guessers"] = []
     
     room["drawer_index"]=(room["drawer_index"] +1 ) % len(room["players"])
 
@@ -266,6 +276,9 @@ async def handle_guess(room_id,username,guessed_text,active_connections) ->dict:
     
     if username in room["correct_guessers"]:
         return {"success": False, "error": "already guessed correctly"}
+
+    if room["word"] is None:
+        return {"success": False, "error": "word not selected yet"}
     
     if guessed_text.lower().strip() == room["word"].lower().strip():
         time_passed=asyncio.get_event_loop().time() -room["start_time"]
@@ -308,9 +321,6 @@ async def handle_guess(room_id,username,guessed_text,active_connections) ->dict:
         guessers = [p for p in room["players"] if p != room["drawer"]]
         all_guessed= all(p in room["correct_guessers"] for p in guessers)
 
-        if all_guessed:
-            await end_round(room_id)
-
         return {
             "success": True,
             "correct": True,
@@ -337,24 +347,39 @@ async def handle_guess(room_id,username,guessed_text,active_connections) ->dict:
     
 # send message to all player in that room
 async def broadcast(room_id,message,active_connection):
+    if room_id not in rooms:
+        return
+
     room=rooms[room_id]
     for username in room["players"]:
         if username in active_connection:
             websocket=active_connection[username]
-            await websocket.send_text(message)
+            try:
+                await websocket.send_json(message)
+            except Exception:
+                active_connection.pop(username, None)
 
 
 # send message to one specific player only
 async def send_to_one(username, message, active_connection):
     if username in active_connection:
         websocket= active_connection[username]
-        await websocket.send_text(message)
+        try:
+            await websocket.send_json(message)
+        except Exception:
+            active_connection.pop(username, None)
 
 # send message to everyone except drawer
 async def broadcast_except(room_id, exclude_username, message, active_connections):
+    if room_id not in rooms:
+        return
+
     room = rooms[room_id]
     for username in room["players"]:
         if username != exclude_username:        
             if username in active_connections:
                 websocket = active_connections[username]
-                await websocket.send_text(message)
+                try:
+                    await websocket.send_json(message)
+                except Exception:
+                    active_connections.pop(username, None)
