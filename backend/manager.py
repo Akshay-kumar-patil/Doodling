@@ -39,9 +39,9 @@ async def create_room(room_id,host_username) -> dict :
         return {"success": False, "error": "room already exists"}
     
     rooms[room_id]={
-        "players":[host_username],
+        "players":[],
         "host":host_username,
-        "scores":{host_username:0},
+        "scores":{},
         "drawer":None,
         "word":None,
         "round_active":False,
@@ -267,12 +267,12 @@ async def handle_guess(room_id,username,guessed_text,active_connections) ->dict:
         return {"success":False , "error":"round is not active"}
     
     if username == room["drawer"]:
-        await send_to_one(username, {
-            "type": "chat",
+        return {
+            "success": True,
+            "correct": False,
             "username": username,
-            "text": guessed_text
-        }, active_connections)
-        return {"success": True}  
+            "text": guessed_text,
+        }
     
     if username in room["correct_guessers"]:
         return {"success": False, "error": "already guessed correctly"}
@@ -298,25 +298,6 @@ async def handle_guess(room_id,username,guessed_text,active_connections) ->dict:
         room["scores"][username]+=points
         room["correct_guessers"].append(username)
 
-        # send only to the correct guesser
-        await send_to_one(username, {
-            "type": "correct_guess",
-            "text": "You guessed correctly!",
-            "points": points,
-        }, active_connections)
-
-        # sending to everyone (word is hidden for rest of the players)
-        await broadcast_except(room_id, username, {
-            "type": "correct_guess",
-            "text": f"{username} guessed the word!",
-        }, active_connections)
-
-        # update the scores to everyone
-        await broadcast(room_id, {
-            "type": "score_update",
-            "scores": room["scores"],
-        }, active_connections)
-
         # check if all guessers have guesses correctly
         guessers = [p for p in room["players"] if p != room["drawer"]]
         all_guessed= all(p in room["correct_guessers"] for p in guessers)
@@ -331,13 +312,6 @@ async def handle_guess(room_id,username,guessed_text,active_connections) ->dict:
         }
     
     else:
-        # if guerss ==wrong everyone can sees your text
-        await broadcast(room_id, {
-            "type": "chat",
-            "username": username,
-            "text": guessed_text,
-        }, active_connections)
-
         return {
             "success": True,
             "correct": False,
