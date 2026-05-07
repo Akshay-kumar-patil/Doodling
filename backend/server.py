@@ -47,8 +47,8 @@ def validate_message(msg: dict) -> bool:
     return False
 
 # when host create room
-@app.post("/Host/create-room/{room_id}") 
-async def host_create_room(room_id,username,total_rounds,total_time) ->dict :
+@app.post("/host/create-room") 
+async def host_create_room(room_id:str,username:str,total_rounds:int,total_time:int) ->dict :
     connect=await manager.create_room(room_id=room_id,host_username=username)
     if connect["success"] == True:
         return {"message": "room created successfully"}
@@ -56,7 +56,7 @@ async def host_create_room(room_id,username,total_rounds,total_time) ->dict :
         return {"message":"room already exists"}
 
 
-@app.websocket("/ws/new-join/{room_id}/{username}")
+@app.websocket("/ws/{room_id}/{username}")
 async def websocket_endpoint(websocket:WebSocket,username:str,room_id:str):
     await websocket.accept()
     active_connections[username]=websocket
@@ -74,7 +74,11 @@ async def websocket_endpoint(websocket:WebSocket,username:str,room_id:str):
     try:
         while True:
             data = await websocket.receive_text()
-            msg = json.loads(data)
+            try:
+                msg = json.loads(data)
+            except json.JSONDecodeError:
+                await websocket.send_json({"message": "invalid json"})
+                continue
             is_valid=validate_message(msg)
             if not is_valid:
                 await websocket.send_json({"message": "invalid message"})
@@ -95,7 +99,9 @@ async def websocket_endpoint(websocket:WebSocket,username:str,room_id:str):
                 word_choices = start["word_choices"]
 
                 await manager.send_to_one(drawer,{"word_choices": word_choices}, active_connections)
-                await manager.broadcast(room_id, {"hint": "_ _ _ _ _"}, active_connections)
+                for player in manager.rooms[room_id]["players"]:
+                    if player != drawer:
+                        await manager.send_to_one(player, {"hint": "_ _ _ _ _"}, active_connections)
                 await manager.broadcast(room_id, {"type": "start", "drawer": drawer}, active_connections)
 
             elif msg["type"] == "word_selected":
@@ -111,11 +117,13 @@ async def websocket_endpoint(websocket:WebSocket,username:str,room_id:str):
                 drawer = manager.rooms[room_id]["drawer"]
                 word=select["word"]
                 await manager.send_to_one(drawer, {"word": word}, active_connections)
-                await manager.broadcast(
-                    room_id,
-                    {"hint": manager.get_word_hint(word)},
-                    active_connections,
-                )
+                for player in manager.rooms[room_id]["players"]:
+                    if player != drawer:
+                        await manager.send_to_one(
+                            player,
+                            {"hint": manager.get_word_hint(word)},
+                            active_connections,
+                        )
 
 
             elif msg["type"] == "draw":
@@ -147,10 +155,22 @@ async def websocket_endpoint(websocket:WebSocket,username:str,room_id:str):
                     continue
 
                 if guess_result.get("correct"):
-                    await manager.broadcast(
-                        room_id,
+                    await manager.send_to_one(
+                        username,
                         {
-                            "message": f"{username} guessed correctly! +{guess_result['points']} points"
+                            "type": "correct_guess",
+                            "text": "You guessed correctly!",
+                            "points": guess_result["points"],
+                        },
+                        active_connections,
+                    )
+
+                    await manager.broadcast_except(
+                        room_id,
+                        username,
+                        {
+                            "type": "correct_guess",
+                            "text": f"{username} guessed the word!",
                         },
                         active_connections,
                     )
@@ -169,11 +189,13 @@ async def websocket_endpoint(websocket:WebSocket,username:str,room_id:str):
 
                         if end_result["game_over"]:
                             winner_info = end_result["winner"]
+                            if winner_info["tie"]:
+                                message = f"game over, tie between: {', '.join(winner_info['winners'])}"
+                            else:
+                                message = f"game over, winner is {winner_info['winner']}"
                             await manager.broadcast(
                                 room_id,
-                                {
-                                    "message": f"game over, winner is {winner_info}"
-                                },
+                                {"message": message},
                                 active_connections,
                             )
                         else:
