@@ -85,7 +85,7 @@ class Drawing:
     
     
     def draw(self,event):
-        if self.last_x and self.last_y:
+        if self.last_x is not None and self.last_y is not None:
             color="white" if self.tool == "eraser" else self.current_color
             size =self.thickness.get()* 4 if self.tool == "eraser" else self.thickness.get()
             line=self.canvas.create_line(
