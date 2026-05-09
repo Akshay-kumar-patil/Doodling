@@ -34,7 +34,7 @@ WORD_DATABASE = [
 
 rooms: Dict[str, dict] = {}
 
-async def create_room(room_id,host_username) -> dict :
+async def create_room(room_id,host_username,total_rounds=None,total_time=None) -> dict :
     if room_id in rooms:
         return {"success": False, "error": "room already exists"}
     
@@ -46,17 +46,17 @@ async def create_room(room_id,host_username) -> dict :
         "word":None,
         "round_active":False,
         "start_time":None,
-        "total_time":None,
+        "total_time":int(total_time) if total_time is not None else None,
         "correct_guessers":[],
         "visited_words":[],
         "word_choices":[],
         "drawer_index":0,
-        "total_rounds": None,
+        "total_rounds": int(total_rounds) if total_rounds is not None else None,
         "current_round": 0, 
         "timer_task":None,
     }
 
-    return {"success":True,"room_id":room_id}
+    return {"success":True,"room_id":room_id,"host":host_username}
 
 #  other palyer can join
 async def join_room(room_id,username) -> dict:
@@ -89,9 +89,6 @@ async def remove_player(room_id,username) ->dict :
         del rooms[room_id]
         return {"success": True, "message": "room deleted, no players left"}
     
-    if username == room["drawer"] and room["round_active"]:
-        await end_round(room_id)
-
     return {"success": True}
 
 # get the current time of the room
@@ -110,8 +107,12 @@ async def get_room_state(room_id) ->dict:
         "success": True,
         "players": room["players"],
         "scores": room["scores"],
+        "host": room["host"],
         "drawer": room["drawer"],
         "round_active": room["round_active"],
+        "current_round": room["current_round"],
+        "total_rounds": room["total_rounds"],
+        "total_time": room["total_time"],
         "time_remaining": round(time_remaining),
     }
 
@@ -166,30 +167,24 @@ async def start_round(room_id,total_time,total_rounds) ->dict:
     
     room["drawer"]=room["players"][room["drawer_index"]]
 
-    room["total_time"]=total_time
+    room["total_time"]=int(total_time) if total_time is not None else room["total_time"]
     room["start_time"]=asyncio.get_event_loop().time()
     room["round_active"]=True
     room["correct_guessers"]=[]
 
-    room["total_rounds"]=total_rounds
+    room["total_rounds"]=int(total_rounds) if total_rounds is not None else room["total_rounds"]
     room["current_round"] += 1
 
     word_choices=await get_word_choices(room_id)
-    
-    room["timer_task"]=asyncio.create_task(countdown_timer(room_id,total_time))
 
     return {
         "success":True,
         "drawer":room["drawer"],
         "word_choices":word_choices,
-        "total_time":total_time,
+        "total_time":room["total_time"],
+        "current_round":room["current_round"],
+        "total_rounds":room["total_rounds"],
     }
-
-async def countdown_timer(room_id, total_time):
-    await asyncio.sleep(total_time)
-
-    if room_id in rooms and rooms[room_id]["round_active"]:
-        await end_round(room_id)
 
 async def end_round(room_id) ->dict:
     if room_id not in rooms:
@@ -200,7 +195,8 @@ async def end_round(room_id) ->dict:
     room["round_active"] =False
 
     if room["timer_task"] is not None:
-        room["timer_task"].cancel()
+        if room["timer_task"] != asyncio.current_task():
+            room["timer_task"].cancel()
         room["timer_task"]=None
 
     correct_word=room["word"]
@@ -208,9 +204,13 @@ async def end_round(room_id) ->dict:
     room["word_choices"] = []
     room["correct_guessers"] = []
     
-    room["drawer_index"]=(room["drawer_index"] +1 ) % len(room["players"])
+    if len(room["players"]) > 0:
+        room["drawer_index"]=(room["drawer_index"] +1 ) % len(room["players"])
+        room["drawer"]=room["players"][room["drawer_index"]]
+    else:
+        room["drawer"]=None
 
-    if room["current_round"]==room["total_rounds"]:
+    if room["total_rounds"] is not None and room["current_round"]>=room["total_rounds"]:
         winner=await announce_winner(room_id)
         return {
             "success":True,
@@ -218,6 +218,7 @@ async def end_round(room_id) ->dict:
             "scores":room["scores"],
             "game_over": True,  
             "winner": winner,
+            "next_drawer": room["drawer"],
         }
 
     return {
@@ -225,6 +226,7 @@ async def end_round(room_id) ->dict:
         "correct_word":correct_word,
         "scores":room["scores"],
         "game_over": False,
+        "next_drawer": room["drawer"],
     }
 
 async def announce_winner(room_id) ->dict:
@@ -257,7 +259,7 @@ def get_word_hint(word: str) -> str:
     return " ".join("_" for letter in word)
 
 # guess the word 
-async def handle_guess(room_id,username,guessed_text,active_connections) ->dict:
+async def handle_guess(room_id,username,guessed_text) ->dict:
     if room_id not in rooms:
         return {"success": False, "error": "room not found"}
     
@@ -309,6 +311,7 @@ async def handle_guess(room_id,username,guessed_text,active_connections) ->dict:
             "points": points,
             "scores": room["scores"],
             "all_guessed": all_guessed,
+            "correct_word": room["word"],
         }
     
     else:
