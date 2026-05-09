@@ -1,14 +1,18 @@
 import asyncio
 import websockets
+import json
 
 async def hello():
-    uri = "ws://localhost:8765"
+    uri = "ws://localhost:8000/ws/room1/player1"
     async with websockets.connect(uri) as websocket:
-        name = input("What's your name? ")
+        text = input("Enter message: ")
         
         # Send data to the server
-        await websocket.send(name)
-        print(f"> Sent: {name}")
+        await websocket.send(json.dumps({
+            "type": "chat",
+            "data": {"text": text}
+        }))
+        print(f"> Sent: {text}")
 
         # Receive the response
         greeting = await websocket.recv()
