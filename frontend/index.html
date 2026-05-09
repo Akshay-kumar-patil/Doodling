@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doodling</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="app-shell">
+        <header class="top-banner">
+            <div class="logo">doodling!</div>
+            <div class="banner-actions">
+                <div class="pill">Custom Room</div>
+                <div class="pill">Quick Draw</div>
+                <div class="pill">Party Mode</div>
+            </div>
+        </header>
+
+        <section class="hud">
+            <div class="hud-left">
+                <div class="timer-badge" id="timerBadge">60</div>
+                <div class="round-block">
+                    <div class="round-title" id="roundLabel">Round 0 of 0</div>
+                    <div class="status-line" id="statusText">Not connected</div>
+                </div>
+            </div>
+            <div class="hud-center">
+                <div class="hud-mode" id="roleText">WAITING</div>
+                <div class="hud-word" id="hintText">_ _ _ _ _</div>
+            </div>
+            <div class="hud-right">
+                <button class="gear-btn" id="startBtn">Start</button>
+            </div>
+        </section>
+
+        <section class="room-setup panel" id="roomSetup">
+            <div class="setup-grid">
+                <input id="roomId" value="room1" placeholder="Room ID">
+                <input id="username" value="player1" placeholder="Username">
+                <select id="playerCount">
+                    <option>2</option>
+                    <option>3</option>
+                    <option>4</option>
+                    <option>5</option>
+                    <option>6</option>
+                    <option>7</option>
+                    <option selected>8</option>
+                </select>
+                <select id="totalTime">
+                    <option>30</option>
+                    <option>45</option>
+                    <option selected>60</option>
+                    <option>80</option>
+                    <option>100</option>
+                </select>
+                <select id="totalRounds">
+                    <option>1</option>
+                    <option>2</option>
+                    <option selected>3</option>
+                    <option>4</option>
+                    <option>5</option>
+                </select>
+                <button id="createRoomBtn">Create Room</button>
+                <button id="connectBtn">Connect</button>
+            </div>
+        </section>
+
+        <main class="game-layout">
+            <aside class="players-panel panel">
+                <div class="panel-title">Players</div>
+                <div id="players" class="players-list"></div>
+            </aside>
+
+            <section class="board-panel panel">
+                <div class="board-title">
+                    <div>
+                        <span class="board-label">Drawer</span>
+                        <strong id="drawerText">-</strong>
+                    </div>
+                    <div>
+                        <span class="board-label">Word</span>
+                        <strong id="wordText">-</strong>
+                    </div>
+                </div>
+
+                <div class="board-wrap">
+                    <canvas id="board" width="1000" height="640"></canvas>
+                    <div id="lobbyOverlay" class="lobby-overlay">
+                        <div class="lobby-panel">
+                            <div class="lobby-grid">
+                                <div class="lobby-row">
+                                    <label>Players</label>
+                                    <select id="lobbyPlayers">
+                                        <option>2</option>
+                                        <option>3</option>
+                                        <option>4</option>
+                                        <option>5</option>
+                                        <option>6</option>
+                                        <option>7</option>
+                                        <option selected>8</option>
+                                    </select>
+                                </div>
+                                <div class="lobby-row">
+                                    <label>Language</label>
+                                    <select id="lobbyLanguage">
+                                        <option selected>English</option>
+                                    </select>
+                                </div>
+                                <div class="lobby-row">
+                                    <label>Drawtime</label>
+                                    <select id="lobbyDrawtime">
+                                        <option>30</option>
+                                        <option>45</option>
+                                        <option selected>60</option>
+                                        <option>80</option>
+                                        <option>100</option>
+                                    </select>
+                                </div>
+                                <div class="lobby-row">
+                                    <label>Rounds</label>
+                                    <select id="lobbyRounds">
+                                        <option>1</option>
+                                        <option>2</option>
+                                        <option selected>3</option>
+                                        <option>4</option>
+                                        <option>5</option>
+                                    </select>
+                                </div>
+                                <div class="lobby-row">
+                                    <label>Game Mode</label>
+                                    <select id="lobbyMode">
+                                        <option selected>Normal</option>
+                                    </select>
+                                </div>
+                                <div class="lobby-row">
+                                    <label>Word Count</label>
+                                    <select id="lobbyWordCount">
+                                        <option selected>3</option>
+                                    </select>
+                                </div>
+                                <div class="lobby-row">
+                                    <label>Hints</label>
+                                    <select id="lobbyHints">
+                                        <option>1</option>
+                                        <option selected>2</option>
+                                        <option>3</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="custom-words-block">
+                                <div class="custom-words-head">
+                                    <span>Custom words</span>
+                                    <label class="checkbox-line">
+                                        <span>Use custom words only</span>
+                                        <input id="customOnly" type="checkbox">
+                                    </label>
+                                </div>
+                                <textarea id="customWords" placeholder="Minimum of 10 words. 1-32 characters per word! 20000 characters maximum. Separated by a , (comma)"></textarea>
+                            </div>
+
+                            <div class="lobby-actions">
+                                <button id="lobbyStartBtn" class="lobby-start">Start!</button>
+                                <button id="inviteBtn" class="lobby-invite">Invite</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="toolbar" id="toolbar">
+                    <div class="palette" id="palette">
+                        <button class="color-swatch active" data-color="#111111" style="background:#111111"></button>
+                        <button class="color-swatch" data-color="#ffffff" style="background:#ffffff"></button>
+                        <button class="color-swatch" data-color="#e11d48" style="background:#e11d48"></button>
+                        <button class="color-swatch" data-color="#f97316" style="background:#f97316"></button>
+                        <button class="color-swatch" data-color="#eab308" style="background:#eab308"></button>
+                        <button class="color-swatch" data-color="#22c55e" style="background:#22c55e"></button>
+                        <button class="color-swatch" data-color="#06b6d4" style="background:#06b6d4"></button>
+                        <button class="color-swatch" data-color="#2563eb" style="background:#2563eb"></button>
+                        <button class="color-swatch" data-color="#7c3aed" style="background:#7c3aed"></button>
+                        <button class="color-swatch" data-color="#ec4899" style="background:#ec4899"></button>
+                        <button class="color-swatch" data-color="#92400e" style="background:#92400e"></button>
+                    </div>
+
+                    <div class="tools">
+                        <label class="size-box">
+                            <span>Brush</span>
+                            <input id="brushSize" type="range" min="1" max="20" value="4">
+                        </label>
+                        <button id="clearCanvasBtn" class="tool-btn">Clear</button>
+                    </div>
+                </div>
+            </section>
+
+            <aside class="chat-panel panel">
+                <div class="chat-card">
+                    <div class="chat-head">
+                        <div class="chat-title">Room Feed</div>
+                        <div class="chat-subtitle">Relevant updates only</div>
+                    </div>
+                    <div id="messages" class="messages"></div>
+                </div>
+
+                <div class="scores-card">
+                    <div class="panel-title">Scores</div>
+                    <div id="scores" class="scores-list"></div>
+                </div>
+
+                <div class="chat-input-row">
+                    <input id="chatInput" placeholder="Type your guess here...">
+                    <button id="sendChatBtn">Send</button>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <div id="wordModal" class="modal hidden">
+        <div class="modal-card">
+            <div class="modal-title">Choose a word</div>
+            <div class="modal-subtitle">Only the drawer can see this</div>
+            <div id="wordChoices" class="choice-grid"></div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
