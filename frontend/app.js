@@ -49,16 +49,46 @@ const lobbyPlayers = document.getElementById("lobbyPlayers");
 const lobbyDrawtime = document.getElementById("lobbyDrawtime");
 const lobbyRounds = document.getElementById("lobbyRounds");
 const lobbyStartBtn = document.getElementById("lobbyStartBtn");
+const lobbyJoinVoiceBtn = document.getElementById("lobbyJoinVoiceBtn");
+const lobbyLeaveVoiceBtn = document.getElementById("lobbyLeaveVoiceBtn");
 const inviteBtn = document.getElementById("inviteBtn");
 const toolbar = document.getElementById("toolbar");
+const sharedRoomIdText = document.getElementById("sharedRoomIdText");
+const copyPeerRoomBtn = document.getElementById("copyPeerRoomBtn");
+const openPeerRoomBtn = document.getElementById("openPeerRoomBtn");
+const peerRoomLink = document.getElementById("peerRoomLink");
+const joinVoiceBtn = document.getElementById("joinVoiceBtn");
+const leaveVoiceBtn = document.getElementById("leaveVoiceBtn");
+const quickJoinVoiceBtn = document.getElementById("quickJoinVoiceBtn");
+const quickLeaveVoiceBtn = document.getElementById("quickLeaveVoiceBtn");
+const voiceStatus = document.getElementById("voiceStatus");
+const voiceMembers = document.getElementById("voiceMembers");
+const voiceAudios = document.getElementById("voiceAudios");
 const canvas = document.getElementById("board");
 const ctx = canvas.getContext("2d");
+const voiceClient = window.voiceRoom.createVoiceRoomClient({
+    roomIdInput,
+    usernameInput,
+    statusNode: voiceStatus,
+    membersNode: voiceMembers,
+    audiosNode: voiceAudios,
+    onStatus: addMessage,
+});
 
 ctx.lineCap = "round";
 ctx.lineJoin = "round";
 
 function setStatus(text) {
     statusText.textContent = text;
+}
+
+function syncSharedRoomIdDisplay() {
+    window.peerRoom.syncPeerRoomControls({
+        roomIdInput,
+        usernameInput,
+        roomIdText: sharedRoomIdText,
+        linkNode: peerRoomLink,
+    });
 }
 
 function addMessage(text, kind = "system") {
@@ -214,6 +244,8 @@ function sendMessage(type, data) {
 
 async function createRoom() {
     syncTopFields();
+    roomIdInput.value = window.sharedRoom.generateSharedRoomId();
+    syncSharedRoomIdDisplay();
     const params = new URLSearchParams({
         room_id: roomIdInput.value.trim(),
         username: usernameInput.value.trim(),
@@ -287,6 +319,7 @@ function stopRoomPolling() {
 }
 
 function connectRoom() {
+    syncSharedRoomIdDisplay();
     const roomId = roomIdInput.value.trim();
     const username = usernameInput.value.trim();
 
@@ -520,6 +553,43 @@ inviteBtn.onclick = async () => {
         addMessage(text, "system");
     }
 };
+copyPeerRoomBtn.onclick = async () => {
+    syncSharedRoomIdDisplay();
+    try {
+        const peerText = await window.peerRoom.copyPeerRoomId(roomIdInput.value.trim());
+        addMessage("Peer room ID copied", "system");
+    } catch (error) {
+        const peerText = `Peer room ID: ${roomIdInput.value.trim()}`;
+        addMessage(peerText, "system");
+    }
+};
+openPeerRoomBtn.onclick = () => {
+    syncSharedRoomIdDisplay();
+    window.peerRoom.openPeerRoom(peerRoomLink.href);
+};
+joinVoiceBtn.onclick = () => {
+    syncSharedRoomIdDisplay();
+    voiceClient.join();
+};
+leaveVoiceBtn.onclick = () => {
+    voiceClient.leave();
+};
+quickJoinVoiceBtn.onclick = () => {
+    syncSharedRoomIdDisplay();
+    voiceClient.join();
+};
+quickLeaveVoiceBtn.onclick = () => {
+    voiceClient.leave();
+};
+lobbyJoinVoiceBtn.onclick = () => {
+    syncSharedRoomIdDisplay();
+    voiceClient.join();
+};
+lobbyLeaveVoiceBtn.onclick = () => {
+    voiceClient.leave();
+};
+roomIdInput.addEventListener("input", syncSharedRoomIdDisplay);
+usernameInput.addEventListener("input", syncSharedRoomIdDisplay);
 
 sendChatBtn.onclick = () => {
     const text = chatInput.value.trim();
@@ -546,4 +616,6 @@ renderPlayers();
 renderScores();
 updateRoundLabel();
 syncLobbyFields();
+roomIdInput.value = window.sharedRoom.generateSharedRoomId();
+syncSharedRoomIdDisplay();
 updateLobbyVisibility();

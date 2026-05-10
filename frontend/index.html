@@ -4,7 +4,179 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Doodling</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .share-strip {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 12px;
+            border: 3px solid #dbeafe;
+            border-radius: 10px;
+            background: #f8fbff;
+        }
+
+        .share-copy,
+        .share-actions,
+        .peer-link-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .share-label {
+            color: #475569;
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #sharedRoomIdText {
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: 2px;
+        }
+
+        .peer-link-row {
+            margin-top: 8px;
+        }
+
+        .peer-link-row a {
+            color: #1d4ed8;
+            font-weight: 800;
+            word-break: break-all;
+        }
+
+        .voice-quick-row {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .share-strip button,
+        .voice-quick-row button {
+            border: 3px solid #c7d2fe;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 15px;
+            font-weight: 800;
+            color: white;
+            cursor: pointer;
+        }
+
+        .share-strip button {
+            background: #2563eb;
+        }
+
+        .voice-quick-row button {
+            background: #0f766e;
+        }
+
+        .lobby-actions {
+            display: grid !important;
+            grid-template-columns: 1.4fr 0.8fr 0.9fr 0.9fr !important;
+            gap: 10px !important;
+        }
+
+        .lobby-voice {
+            border: none;
+            border-radius: 8px;
+            padding: 16px 20px;
+            font-size: 24px;
+            font-weight: 900;
+            color: white;
+            cursor: pointer;
+            background: #0f766e;
+        }
+
+        .lobby-voice-leave {
+            background: #475569;
+        }
+
+        .voice-card {
+            border-bottom: 4px solid #dbeafe;
+            padding-bottom: 10px;
+        }
+
+        .voice-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 10px;
+        }
+
+        .voice-controls button {
+            border: 3px solid #c7d2fe;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 15px;
+            font-weight: 700;
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+        }
+
+        .voice-status {
+            margin: 0 10px 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: #f8fbff;
+            color: #1e293b;
+            font-weight: 800;
+        }
+
+        .voice-members,
+        .voice-audios {
+            padding: 0 10px 10px;
+        }
+
+        .voice-member {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 2px solid #edf2ff;
+        }
+
+        .voice-member-role,
+        .voice-member-empty,
+        .voice-audio-title {
+            font-weight: 700;
+        }
+
+        .voice-member-role {
+            color: #64748b;
+        }
+
+        .voice-audio-row {
+            padding: 10px 0;
+            border-bottom: 2px solid #edf2ff;
+        }
+
+        .voice-audio-row audio {
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 1080px) {
+            .share-strip {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .voice-quick-row,
+            .lobby-actions {
+                grid-template-columns: 1fr 1fr !important;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="app-shell">
@@ -36,7 +208,7 @@
 
         <section class="room-setup panel" id="roomSetup">
             <div class="setup-grid">
-                <input id="roomId" value="room1" placeholder="Room ID">
+                <input id="roomId" placeholder="Room ID">
                 <input id="username" value="player1" placeholder="Username">
                 <select id="playerCount">
                     <option>2</option>
@@ -63,6 +235,24 @@
                 </select>
                 <button id="createRoomBtn">Create Room</button>
                 <button id="connectBtn">Connect</button>
+            </div>
+            <div class="share-strip">
+                <div class="share-copy">
+                    <span class="share-label">Shared Room ID</span>
+                    <strong id="sharedRoomIdText">-</strong>
+                </div>
+                <div class="share-actions">
+                    <button id="copyPeerRoomBtn" type="button">Copy Peer Room ID</button>
+                    <button id="openPeerRoomBtn" type="button">Open Voice Room</button>
+                </div>
+            </div>
+            <div class="peer-link-row">
+                <span class="share-label">Peer Voice Link</span>
+                <a id="peerRoomLink" href="http://127.0.0.1:8501" target="_blank" rel="noreferrer">http://127.0.0.1:8501</a>
+            </div>
+            <div class="voice-quick-row">
+                <button id="quickJoinVoiceBtn" type="button">Join Voice Here</button>
+                <button id="quickLeaveVoiceBtn" type="button">Leave Voice</button>
             </div>
         </section>
 
@@ -163,6 +353,8 @@
                             <div class="lobby-actions">
                                 <button id="lobbyStartBtn" class="lobby-start">Start!</button>
                                 <button id="inviteBtn" class="lobby-invite">Invite</button>
+                                <button id="lobbyJoinVoiceBtn" class="lobby-voice">Join Voice</button>
+                                <button id="lobbyLeaveVoiceBtn" class="lobby-voice lobby-voice-leave">Leave Voice</button>
                             </div>
                         </div>
                     </div>
@@ -202,6 +394,17 @@
                     <div id="messages" class="messages"></div>
                 </div>
 
+                <div class="voice-card">
+                    <div class="panel-title">Voice Room</div>
+                    <div class="voice-controls">
+                        <button id="joinVoiceBtn" type="button">Join Voice</button>
+                        <button id="leaveVoiceBtn" type="button">Leave Voice</button>
+                    </div>
+                    <div id="voiceStatus" class="voice-status">Voice disconnected</div>
+                    <div id="voiceMembers" class="voice-members"></div>
+                    <div id="voiceAudios" class="voice-audios"></div>
+                </div>
+
                 <div class="scores-card">
                     <div class="panel-title">Scores</div>
                     <div id="scores" class="scores-list"></div>
@@ -224,5 +427,405 @@
     </div>
 
     <script src="/static/app.js"></script>
+    <script>
+        (() => {
+            const PEER_BACKEND_URL = "https://baat-cheet-2kkg.onrender.com";
+            const PEER_SOCKET_BASE_URL = PEER_BACKEND_URL.replace("http://", "ws://").replace("https://", "wss://");
+            const ROOM_ID_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+            const roomIdInput = document.getElementById("roomId");
+            const usernameInput = document.getElementById("username");
+            const sharedRoomIdText = document.getElementById("sharedRoomIdText");
+            const peerRoomLink = document.getElementById("peerRoomLink");
+            const createRoomBtn = document.getElementById("createRoomBtn");
+            const connectBtn = document.getElementById("connectBtn");
+            const copyPeerRoomBtn = document.getElementById("copyPeerRoomBtn");
+            const openPeerRoomBtn = document.getElementById("openPeerRoomBtn");
+            const quickJoinVoiceBtn = document.getElementById("quickJoinVoiceBtn");
+            const quickLeaveVoiceBtn = document.getElementById("quickLeaveVoiceBtn");
+            const lobbyJoinVoiceBtn = document.getElementById("lobbyJoinVoiceBtn");
+            const lobbyLeaveVoiceBtn = document.getElementById("lobbyLeaveVoiceBtn");
+            const joinVoiceBtn = document.getElementById("joinVoiceBtn");
+            const leaveVoiceBtn = document.getElementById("leaveVoiceBtn");
+            const voiceStatus = document.getElementById("voiceStatus");
+            const voiceMembers = document.getElementById("voiceMembers");
+            const voiceAudios = document.getElementById("voiceAudios");
+            const messages = document.getElementById("messages");
+
+            function addMessage(text, kind = "system") {
+                if (!messages) {
+                    return;
+                }
+                const item = document.createElement("div");
+                item.className = `message ${kind}`;
+                item.textContent = text;
+                messages.appendChild(item);
+                messages.scrollTop = messages.scrollHeight;
+            }
+
+            function generateRoomId(length = 6) {
+                const values = new Uint32Array(length);
+                window.crypto.getRandomValues(values);
+                let roomId = "";
+                for (let i = 0; i < length; i += 1) {
+                    roomId += ROOM_ID_CHARS[values[i] % ROOM_ID_CHARS.length];
+                }
+                return roomId;
+            }
+
+            function normalizeRoomId(value) {
+                const normalized = String(value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+                return normalized || generateRoomId();
+            }
+
+            function buildPeerLink(roomId, username) {
+                const url = new URL("http://127.0.0.1:8501");
+                url.searchParams.set("room_id", normalizeRoomId(roomId));
+                if (String(username || "").trim()) {
+                    url.searchParams.set("name", String(username).trim());
+                }
+                return url.toString();
+            }
+
+            function syncSharedUi() {
+                const roomId = normalizeRoomId(roomIdInput.value);
+                roomIdInput.value = roomId;
+                sharedRoomIdText.textContent = roomId;
+                const url = buildPeerLink(roomId, usernameInput.value);
+                peerRoomLink.href = url;
+                peerRoomLink.textContent = url;
+                return { roomId, url };
+            }
+
+            const previousCreate = createRoomBtn.onclick;
+            createRoomBtn.onclick = (event) => {
+                roomIdInput.value = generateRoomId();
+                syncSharedUi();
+                if (typeof previousCreate === "function") {
+                    previousCreate.call(createRoomBtn, event);
+                }
+            };
+
+            const previousConnect = connectBtn.onclick;
+            connectBtn.onclick = (event) => {
+                syncSharedUi();
+                if (typeof previousConnect === "function") {
+                    previousConnect.call(connectBtn, event);
+                }
+            };
+
+            copyPeerRoomBtn.onclick = async () => {
+                const { roomId } = syncSharedUi();
+                const text = `Peer room ID: ${roomId}`;
+                try {
+                    await navigator.clipboard.writeText(text);
+                    addMessage("Peer room ID copied", "system");
+                } catch (error) {
+                    addMessage(text, "system");
+                }
+            };
+
+            openPeerRoomBtn.onclick = () => {
+                const { url } = syncSharedUi();
+                window.open(url, "_blank", "noopener,noreferrer");
+            };
+
+            const voiceState = {
+                socket: null,
+                localStream: null,
+                currentMembers: [],
+                peerId: "",
+                peers: new Map(),
+                remoteAudios: new Map(),
+                waitingIceCandidates: new Map(),
+            };
+
+            function setVoiceStatus(text, kind = "system") {
+                voiceStatus.textContent = text;
+                addMessage(text, kind);
+            }
+
+            function makePeerId() {
+                const values = new Uint32Array(4);
+                window.crypto.getRandomValues(values);
+                return Array.from(values, (value) => value.toString(16).padStart(8, "0")).join("").slice(0, 16);
+            }
+
+            function renderVoiceMembers() {
+                voiceMembers.innerHTML = "";
+                if (voiceState.currentMembers.length === 0) {
+                    voiceMembers.innerHTML = '<div class="voice-member-empty">No one in voice yet</div>';
+                    return;
+                }
+
+                voiceState.currentMembers.forEach((member) => {
+                    const row = document.createElement("div");
+                    row.className = "voice-member";
+                    row.innerHTML = `
+                        <div class="voice-member-name">${member.display_name}</div>
+                        <div class="voice-member-role">${member.peer_id === voiceState.peerId ? "You" : (member.is_host ? "Host" : "Guest")}</div>
+                    `;
+                    voiceMembers.appendChild(row);
+                });
+            }
+
+            function makeAudioPlayer(remotePeerId, remoteName) {
+                if (voiceState.remoteAudios.has(remotePeerId)) {
+                    return voiceState.remoteAudios.get(remotePeerId);
+                }
+
+                const wrapper = document.createElement("div");
+                wrapper.className = "voice-audio-row";
+                wrapper.id = `voice-audio-${remotePeerId}`;
+
+                const title = document.createElement("div");
+                title.className = "voice-audio-title";
+                title.textContent = `Listening to ${remoteName}`;
+
+                const audio = document.createElement("audio");
+                audio.autoplay = true;
+                audio.controls = true;
+
+                wrapper.appendChild(title);
+                wrapper.appendChild(audio);
+                voiceAudios.appendChild(wrapper);
+
+                voiceState.remoteAudios.set(remotePeerId, audio);
+                return audio;
+            }
+
+            function removeAudioPlayer(remotePeerId) {
+                const audio = voiceState.remoteAudios.get(remotePeerId);
+                if (audio) {
+                    audio.srcObject = null;
+                    voiceState.remoteAudios.delete(remotePeerId);
+                }
+                const wrapper = document.getElementById(`voice-audio-${remotePeerId}`);
+                if (wrapper) {
+                    wrapper.remove();
+                }
+            }
+
+            async function sendSignal(type, target, payload) {
+                if (!voiceState.socket || voiceState.socket.readyState !== WebSocket.OPEN) {
+                    return;
+                }
+                voiceState.socket.send(JSON.stringify({ type, target, payload }));
+            }
+
+            async function getOrCreatePeerConnection(remotePeer, shouldCreateOffer) {
+                if (voiceState.peers.has(remotePeer.peer_id)) {
+                    return voiceState.peers.get(remotePeer.peer_id);
+                }
+
+                const connection = new RTCPeerConnection({
+                    iceServers: [
+                        { urls: "stun:stun.l.google.com:19302" },
+                        { urls: "stun:stun1.l.google.com:19302" },
+                    ],
+                });
+
+                if (voiceState.localStream) {
+                    voiceState.localStream.getTracks().forEach((track) => {
+                        connection.addTrack(track, voiceState.localStream);
+                    });
+                }
+
+                connection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        sendSignal("ice-candidate", remotePeer.peer_id, event.candidate);
+                    }
+                };
+
+                connection.ontrack = (event) => {
+                    const audio = makeAudioPlayer(remotePeer.peer_id, remotePeer.display_name || remotePeer.peer_id);
+                    audio.srcObject = event.streams[0];
+                    setVoiceStatus("Voice connected", "success");
+                };
+
+                connection.onconnectionstatechange = () => {
+                    if (["failed", "disconnected", "closed"].includes(connection.connectionState)) {
+                        voiceState.peers.delete(remotePeer.peer_id);
+                        removeAudioPlayer(remotePeer.peer_id);
+                    }
+                };
+
+                voiceState.peers.set(remotePeer.peer_id, connection);
+
+                const pending = voiceState.waitingIceCandidates.get(remotePeer.peer_id) || [];
+                for (const candidate of pending) {
+                    await connection.addIceCandidate(new RTCIceCandidate(candidate));
+                }
+                voiceState.waitingIceCandidates.delete(remotePeer.peer_id);
+
+                if (shouldCreateOffer) {
+                    const offer = await connection.createOffer();
+                    await connection.setLocalDescription(offer);
+                    await sendSignal("offer", remotePeer.peer_id, offer);
+                }
+
+                return connection;
+            }
+
+            async function handleOffer(sourcePeerId, payload) {
+                const remotePeer = voiceState.currentMembers.find((member) => member.peer_id === sourcePeerId) || {
+                    peer_id: sourcePeerId,
+                    display_name: sourcePeerId,
+                };
+                const connection = await getOrCreatePeerConnection(remotePeer, false);
+                await connection.setRemoteDescription(new RTCSessionDescription(payload));
+                const answer = await connection.createAnswer();
+                await connection.setLocalDescription(answer);
+                await sendSignal("answer", sourcePeerId, answer);
+            }
+
+            async function handleAnswer(sourcePeerId, payload) {
+                const connection = voiceState.peers.get(sourcePeerId);
+                if (connection) {
+                    await connection.setRemoteDescription(new RTCSessionDescription(payload));
+                }
+            }
+
+            async function handleIceCandidate(sourcePeerId, payload) {
+                const connection = voiceState.peers.get(sourcePeerId);
+                if (connection) {
+                    await connection.addIceCandidate(new RTCIceCandidate(payload));
+                    return;
+                }
+                const waiting = voiceState.waitingIceCandidates.get(sourcePeerId) || [];
+                waiting.push(payload);
+                voiceState.waitingIceCandidates.set(sourcePeerId, waiting);
+            }
+
+            async function joinVoice() {
+                const roomId = normalizeRoomId(roomIdInput.value);
+                const username = String(usernameInput.value || "").trim();
+
+                if (!username) {
+                    setVoiceStatus("Enter username first", "system");
+                    return;
+                }
+
+                if (voiceState.socket && voiceState.socket.readyState === WebSocket.OPEN) {
+                    setVoiceStatus("Voice already connected", "system");
+                    return;
+                }
+
+                roomIdInput.value = roomId;
+                syncSharedUi();
+                voiceState.peerId = makePeerId();
+
+                try {
+                    voiceState.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                    setVoiceStatus("Microphone ready, joining voice room...", "system");
+                } catch (error) {
+                    setVoiceStatus("Microphone access failed", "system");
+                    return;
+                }
+
+                const params = new URLSearchParams({ name: username });
+                voiceState.socket = new WebSocket(`${PEER_SOCKET_BASE_URL}/ws/${roomId}/${voiceState.peerId}?${params.toString()}`);
+
+                voiceState.socket.onopen = () => {
+                    setVoiceStatus("Connected to voice room", "success");
+                };
+
+                voiceState.socket.onmessage = async (event) => {
+                    const message = JSON.parse(event.data);
+
+                    if (message.type === "welcome") {
+                        for (const peer of message.existing_peers || []) {
+                            await getOrCreatePeerConnection(peer, true);
+                        }
+                    }
+
+                    if (message.type === "room_state") {
+                        voiceState.currentMembers = message.room.members || [];
+                        renderVoiceMembers();
+                    }
+
+                    if (message.type === "offer") {
+                        await handleOffer(message.source, message.payload);
+                    }
+
+                    if (message.type === "answer") {
+                        await handleAnswer(message.source, message.payload);
+                    }
+
+                    if (message.type === "ice-candidate") {
+                        await handleIceCandidate(message.source, message.payload);
+                    }
+
+                    if (message.type === "peer_left") {
+                        const connection = voiceState.peers.get(message.peer_id);
+                        if (connection) {
+                            connection.close();
+                            voiceState.peers.delete(message.peer_id);
+                        }
+                        removeAudioPlayer(message.peer_id);
+                    }
+
+                    if (message.type === "kicked") {
+                        setVoiceStatus("You were removed from the voice room", "system");
+                        leaveVoice();
+                    }
+
+                    if (message.type === "error") {
+                        setVoiceStatus(message.message || "Voice room error", "system");
+                    }
+                };
+
+                voiceState.socket.onclose = () => {
+                    voiceState.socket = null;
+                    setVoiceStatus("Voice disconnected", "system");
+                };
+            }
+
+            function leaveVoice() {
+                if (voiceState.socket) {
+                    voiceState.socket.close();
+                    voiceState.socket = null;
+                }
+
+                voiceState.peers.forEach((connection) => connection.close());
+                voiceState.peers.clear();
+                voiceState.waitingIceCandidates.clear();
+
+                voiceState.remoteAudios.forEach((audio) => {
+                    audio.srcObject = null;
+                });
+                voiceState.remoteAudios.clear();
+                voiceAudios.innerHTML = "";
+
+                if (voiceState.localStream) {
+                    voiceState.localStream.getTracks().forEach((track) => track.stop());
+                    voiceState.localStream = null;
+                }
+
+                voiceState.currentMembers = [];
+                renderVoiceMembers();
+                setVoiceStatus("Voice disconnected", "system");
+            }
+
+            [quickJoinVoiceBtn, lobbyJoinVoiceBtn, joinVoiceBtn].forEach((button) => {
+                if (button) {
+                    button.onclick = joinVoice;
+                }
+            });
+
+            [quickLeaveVoiceBtn, lobbyLeaveVoiceBtn, leaveVoiceBtn].forEach((button) => {
+                if (button) {
+                    button.onclick = leaveVoice;
+                }
+            });
+
+            roomIdInput.addEventListener("input", syncSharedUi);
+            usernameInput.addEventListener("input", syncSharedUi);
+
+            roomIdInput.value = normalizeRoomId(roomIdInput.value);
+            renderVoiceMembers();
+            syncSharedUi();
+        })();
+    </script>
 </body>
 </html>
