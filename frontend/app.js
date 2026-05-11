@@ -18,6 +18,8 @@ const state = {
     pendingWordChoices: [],
 };
 
+const PEER_VOICE_BACKEND_URL = "http://127.0.0.1:8011";
+
 const roomIdInput = document.getElementById("roomId");
 const usernameInput = document.getElementById("username");
 const playerCountInput = document.getElementById("playerCount");
@@ -244,11 +246,43 @@ function sendMessage(type, data) {
 
 async function createRoom() {
     syncTopFields();
-    roomIdInput.value = window.sharedRoom.generateSharedRoomId();
+    const username = usernameInput.value.trim();
+
+    if (!username) {
+        addMessage("Username is required", "system");
+        return;
+    }
+
+    let sharedRoomId = "";
+    try {
+        const peerResponse = await fetch(`${PEER_VOICE_BACKEND_URL}/rooms/create`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                display_name: username,
+            }),
+        });
+
+        if (!peerResponse.ok) {
+            addMessage("Voice room could not be created", "system");
+            return;
+        }
+
+        const peerRoom = await peerResponse.json();
+        sharedRoomId = String(peerRoom.room_id || "").trim();
+    } catch (error) {
+        addMessage("Voice backend is not running on port 8011", "system");
+        return;
+    }
+
+    roomIdInput.value = sharedRoomId;
     syncSharedRoomIdDisplay();
+
     const params = new URLSearchParams({
         room_id: roomIdInput.value.trim(),
-        username: usernameInput.value.trim(),
+        username,
         total_rounds: totalRoundsInput.value.trim(),
         total_time: totalTimeInput.value.trim(),
     });
