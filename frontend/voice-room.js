@@ -1,5 +1,5 @@
 (function () {
-    const BACKEND_URL = "https://baat-cheet-2kkg.onrender.com";
+    const BACKEND_URL = "http://127.0.0.1:8011";
     const SOCKET_BASE_URL = BACKEND_URL.replace("http://", "ws://").replace("https://", "wss://");
 
     function makePeerId() {
@@ -209,6 +209,27 @@
 
             roomIdInput.value = roomId;
             state.peerId = makePeerId();
+
+            try {
+                const createResponse = await fetch(`${BACKEND_URL}/rooms/create`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        display_name: username,
+                        room_id: roomId,
+                    }),
+                });
+
+                if (!createResponse.ok && createResponse.status !== 409) {
+                    reportStatus("Voice room could not be prepared", "system");
+                    return;
+                }
+            } catch (error) {
+                reportStatus("Voice backend is not reachable", "system");
+                return;
+            }
 
             try {
                 state.localStream = await navigator.mediaDevices.getUserMedia({
