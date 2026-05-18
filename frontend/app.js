@@ -18,7 +18,7 @@ const state = {
     pendingWordChoices: [],
 };
 
-const PEER_VOICE_BACKEND_URL = "http://127.0.0.1:8011";
+const PEER_VOICE_BACKEND_URL = `${window.location.origin}/voice`;
 
 const roomIdInput = document.getElementById("roomId");
 const usernameInput = document.getElementById("username");
@@ -273,7 +273,7 @@ async function createRoom() {
         const peerRoom = await peerResponse.json();
         sharedRoomId = String(peerRoom.room_id || "").trim();
     } catch (error) {
-        addMessage("Voice backend is not running on port 8011", "system");
+        addMessage("Voice backend is not reachable", "system");
         return;
     }
 

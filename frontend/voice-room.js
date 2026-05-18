@@ -1,6 +1,11 @@
 (function () {
-    const BACKEND_URL = "http://127.0.0.1:8011";
-    const SOCKET_BASE_URL = BACKEND_URL.replace("http://", "ws://").replace("https://", "wss://");
+    function getBackendUrl() {
+        return `${window.location.origin}/voice`;
+    }
+
+    function getSocketBaseUrl() {
+        return window.location.origin.replace("http://", "ws://").replace("https://", "wss://");
+    }
 
     function makePeerId() {
         const array = new Uint32Array(4);
@@ -211,7 +216,7 @@
             state.peerId = makePeerId();
 
             try {
-                const createResponse = await fetch(`${BACKEND_URL}/rooms/create`, {
+                const createResponse = await fetch(`${getBackendUrl()}/rooms/create`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -243,7 +248,7 @@
             }
 
             const params = new URLSearchParams({ name: username });
-            state.socket = new WebSocket(`${SOCKET_BASE_URL}/ws/${roomId}/${state.peerId}?${params.toString()}`);
+            state.socket = new WebSocket(`${getSocketBaseUrl()}/voice/ws/${roomId}/${state.peerId}?${params.toString()}`);
 
             state.socket.onopen = () => {
                 reportStatus("Connected to voice room", "success");
