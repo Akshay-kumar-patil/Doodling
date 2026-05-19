@@ -77,6 +77,10 @@ const voiceClient = window.voiceRoom.createVoiceRoomClient({
     onStatus: addMessage,
 });
 
+function getGameSocketBaseUrl() {
+    return window.location.origin.replace("http://", "ws://").replace("https://", "wss://");
+}
+
 ctx.lineCap = "round";
 ctx.lineJoin = "round";
 
@@ -371,7 +375,7 @@ function connectRoom() {
     state.totalRounds = Number(totalRoundsInput.value) || 0;
     updateRoundLabel();
     timerBadge.textContent = totalTimeInput.value || "60";
-    state.ws = new WebSocket(`ws://${window.location.host}/ws/${roomId}/${username}`);
+    state.ws = new WebSocket(`${getGameSocketBaseUrl()}/ws/${roomId}/${username}`);
 
     state.ws.onopen = () => {
         state.connected = true;
