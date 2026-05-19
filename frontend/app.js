@@ -583,10 +583,11 @@ lobbyStartBtn.onclick = () => {
     });
 };
 inviteBtn.onclick = async () => {
-    const text = `${window.location.origin} | room: ${roomIdInput.value.trim()}`;
+    syncSharedRoomIdDisplay();
+    const text = roomIdInput.value.trim();
     try {
         await navigator.clipboard.writeText(text);
-        addMessage("Invite copied to clipboard", "system");
+        addMessage("Room ID copied to clipboard", "system");
     } catch (error) {
         addMessage(text, "system");
     }
